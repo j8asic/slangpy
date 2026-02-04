@@ -160,20 +160,15 @@ NativeTensorMarshall::TensorFieldOffsets NativeTensorMarshall::extract_tensor_fi
     TensorFieldOffsets offsets;
 
     ShaderCursor dim_count_cursor = tensor_cursor.find_field("dimensionCount");
-    // TensorView wrapper struct
+    // TensorViewData - has fixed layout, only need to know the struct's starting offset
     if (dim_count_cursor.is_valid()) {
         offsets.is_tensorview = true;
         offsets.is_valid = true;
-        offsets.data = tensor_cursor["data"].offset();
-        offsets.strides = tensor_cursor["strides"].offset();
-        offsets.shape = tensor_cursor["sizes"].offset();
-        offsets.dimension_count = dim_count_cursor.offset();
-        offsets.array_stride = 4;
         return offsets;
     }
 
     ShaderCursor data_cursor = tensor_cursor.find_field("_data");
-    // slangpy Tensor
+    // slangpy Tensor - needs individual field offsets for buffer binding
     if (data_cursor.is_valid()) {
         offsets.is_tensorview = false;
         offsets.is_valid = true;
