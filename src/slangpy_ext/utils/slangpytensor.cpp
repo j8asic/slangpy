@@ -158,13 +158,35 @@ namespace {
 NativeTensorMarshall::TensorFieldOffsets NativeTensorMarshall::extract_tensor_field_offsets(ShaderCursor tensor_cursor)
 {
     TensorFieldOffsets offsets;
-    offsets.data = tensor_cursor["_data"].offset();
-    offsets.shape = tensor_cursor["_shape"].offset();
-    offsets.strides = tensor_cursor["_strides"].offset();
-    offsets.offset = tensor_cursor["_offset"].offset();
-    offsets.is_valid = true;
-    offsets.array_stride
-        = (int)tensor_cursor["_shape"].slang_type_layout()->getElementStride(SLANG_PARAMETER_CATEGORY_UNIFORM);
+
+    ShaderCursor dim_count_cursor = tensor_cursor.find_field("dimensionCount");
+    // TensorView wrapper struct
+    if (dim_count_cursor.is_valid()) {
+        offsets.is_tensorview = true;
+        offsets.is_valid = true;
+        offsets.data = tensor_cursor["data"].offset();
+        offsets.strides = tensor_cursor["strides"].offset();
+        offsets.shape = tensor_cursor["sizes"].offset();
+        offsets.dimension_count = dim_count_cursor.offset();
+        offsets.array_stride = 4;
+        return offsets;
+    }
+
+    ShaderCursor data_cursor = tensor_cursor.find_field("_data");
+    // slangpy Tensor
+    if (data_cursor.is_valid()) {
+        offsets.is_tensorview = false;
+        offsets.is_valid = true;
+        offsets.data = data_cursor.offset();
+        offsets.shape = tensor_cursor["_shape"].offset();
+        offsets.strides = tensor_cursor["_strides"].offset();
+        offsets.offset = tensor_cursor["_offset"].offset();
+        offsets.array_stride
+            = (int)tensor_cursor["_shape"].slang_type_layout()->getElementStride(SLANG_PARAMETER_CATEGORY_UNIFORM);
+        return offsets;
+    }
+
+    offsets.is_valid = false;
     return offsets;
 }
 
